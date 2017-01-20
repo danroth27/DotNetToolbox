@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "dotnet-toolbox": {
+      "commandName": "Project",
+      "commandLineArgs": "install Microsoft.DotNet.Watcher.Tools"
+    }
+  }
+}
