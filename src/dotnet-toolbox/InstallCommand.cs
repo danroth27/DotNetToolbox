@@ -14,11 +14,14 @@ namespace DotNetToolbox
             Name = "install";
             PackageArgument = new PackageArgument(this);
             Arguments.Add(PackageArgument);
+            VersionOption = new VersionOption(this);
+            Options.Add(VersionOption);
             OnExecute((Func<Task<int>>)Run);
             Parent.Commands.Add(this);
         }
 
         public PackageArgument PackageArgument { get; set; }
+        public VersionOption VersionOption { get; set; }
 
         public async Task<int> Run()
         {
