@@ -73,23 +73,22 @@ namespace DotNetToolbox
                 Error.WriteLine(pi.StandardError.ReadToEnd());
             }
             // We have the package restored
-            var nugetPackagePath = NuGetPathContext.Create(settingsRoot: String.Empty).UserPackageFolder;
+            var nugetPackagePath = NuGetPathContext.Create(settingsRoot: String.Empty).UserPackageFolder.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             var fullPath = Path.Combine(nugetPackagePath, packageId, packageVersion, "lib", "netcoreapp1.0");
             Out.WriteLine(fullPath);
 
             // Find the dotnet-<foo> File
-            // foreach (var file in Directory.GetFiles(fullPath, "dotnet*.dll"))
-            // {
-            //     Out.WriteLine(file);
-            // }
             var pathToTool = Directory.GetFiles(fullPath, "dotnet*.dll").FirstOrDefault();
             if (string.IsNullOrEmpty(pathToTool))
                 throw new Exception("The package does not contain a dotnet-*.dll file");
 
+            Out.WriteLine($"dotnet --additionalprobingpath {nugetPackagePath} {pathToTool}");
+
             // Now we have the thing and we need to execute it using dotnet to make sure it works
-            var p2 = Process.Start(new ProcessStartInfo {
+            var p2 = Process.Start(new ProcessStartInfo
+            {
                 FileName = "dotnet",
-                Arguments = $"--additionalprobingpath {nugetPackagePath} {fullPath}",
+                Arguments = $"--additionalprobingpath {nugetPackagePath} {pathToTool}",
             });
             p2.WaitForExit();
 
