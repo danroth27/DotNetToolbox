@@ -7,7 +7,7 @@
     <PackageTargetFallback Condition=" '$(TargetFramework)' == 'netcoreapp1.1' ">$(PackageTargetFallback);dotnet5.4</PackageTargetFallback>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="**\*.cs" Exclude="**/*.user;**/*.*proj;**/*.sln;**/*.vssscc;" />
+    <Compile Include="**\*.cs" Exclude="**/*.user;**/*.*proj;**/*.sln;**/*.vssscc;obj\**" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Build" Version="15.1.0-preview-000458-02" />

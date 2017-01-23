@@ -20,6 +20,7 @@ namespace DotNetToolbox
     {
         private const string _directory = ".toolbox";
         private const string _projectFileName = "globaltools.csproj";
+        private ToolboxPaths _toolboxPaths;
         private string _projectFile = @"<Project Sdk=""Microsoft.NET.Sdk"">
   <PropertyGroup>
     <TargetFramework>netcoreapp1.0</TargetFramework>
@@ -36,6 +37,7 @@ namespace DotNetToolbox
             OnExecute((Func<Task<int>>)Run);
             Parent.Commands.Add(this);
             HelpOption("-h|--help");
+            _toolboxPaths = new ToolboxPaths();
         }
 
         public PackageArgument PackageArgument { get; set; }
@@ -44,21 +46,16 @@ namespace DotNetToolbox
         public async Task<int> Run()
         {
             var packageId = PackageArgument.Value;
-            //if (!VersionOption.HasValue())
-            //{
-            //    Error.WriteLine("The package version needs to be specified in the invocation");
-            //    return 1;
-            //}
-            //var packageVersion = VersionOption.Value();
-            Out.WriteLine($"The package ID provided was {packageId}");
+            Out.WriteLine($"The tool ID to install: {packageId}");
+            Out.WriteLine("Determining version...");
             var packageVersion = VersionOption.HasValue() ? VersionOption.Value() : await ResolveLatestFromNuget(packageId);
 
             // Get the paths
-            var paths = GetDirAndProjectPaths();
-            EnsureProjectExists(paths);
+            //var paths = GetDirAndProjectPaths();
+            EnsureProjectExists();
             
             // Add the ItemGroup
-            var projectRoot = ProjectRootElement.Open(paths.Item2);
+            var projectRoot = ProjectRootElement.Open(_toolboxPaths.ToolboxProjectPath);
             var itemGroup = projectRoot.AddItemGroup();
             itemGroup.AddItem("DotNetCliToolReference", packageId, new List<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Version", packageVersion)});
             projectRoot.Save();
@@ -67,8 +64,8 @@ namespace DotNetToolbox
             Out.WriteLine("Installing the package...");
             var restore = Process.Start(new ProcessStartInfo {
                 FileName = "dotnet",
-                Arguments = $"restore {paths.Item2}",
-                RedirectStandardOutput = false,
+                Arguments = $"restore {_toolboxPaths.ToolboxProjectPath}",
+                RedirectStandardOutput = true,
                 RedirectStandardError = false
             });
             restore.WaitForExit();
@@ -83,18 +80,6 @@ namespace DotNetToolbox
             if (string.IsNullOrEmpty(pathToTool))
                 throw new Exception("The package does not contain a dotnet-*.dll file");
 
-            Out.WriteLine($"dotnet --additionalprobingpath {nugetPackagePath} {pathToTool}");
-
-            // Now we have the thing and we need to execute it using dotnet to make sure it works
-            //var p2 = Process.Start(new ProcessStartInfo
-            //{
-            //    FileName = "dotnet",
-            //    Arguments = $"--additionalprobingpath {nugetPackagePath} {pathToTool}",
-            //});
-            //p2.WaitForExit();
-
-            // Out.WriteLine($"I wish I could install {packageId}, but I don't know how! :'(");
-            // Out.WriteLine($"The home dir is {homeDir}");
             Out.WriteLine("Putting the tool into the path...");
             PutToolIntoPath(nugetPackagePath, pathToTool);
             Out.WriteLine("Task Completed!");
@@ -113,44 +98,54 @@ namespace DotNetToolbox
         private void PutToolIntoPath(string nugetPackagePath, string pathToTool)
         {
             var script = new StringBuilder();
-            var scriptName = Path.GetFileNameWithoutExtension(pathToTool);
-            var homeDir = (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) ? Environment.GetEnvironmentVariable("USERPROFILE") : Environment.GetEnvironmentVariable("HOME");
-            var dotnet = Path.Combine(homeDir, _directory);
+            var scriptPath = Path.Combine(_toolboxPaths.ToolboxDirectoryPath, Path.GetFileNameWithoutExtension(pathToTool));
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                // Assume that the .toolbox is in the $PATH
                 script.AppendLine($"dotnet --additionalprobingpath {nugetPackagePath} {pathToTool}");
-                File.WriteAllText($"{Path.Combine(dotnet, scriptName)}.cmd", script.ToString());
+                scriptPath += ".cmd";
             }
             else
             {
                 script.AppendLine("#!/bin/sh");
                 script.AppendLine($"dotnet --additionalprobingpath {nugetPackagePath} {pathToTool}");
-                // Write it out
             }
-            
-        }
 
-        private Tuple<string, string> GetDirAndProjectPaths()
-        {
-            var homeDir = (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) ? Environment.GetEnvironmentVariable("USERPROFILE") : Environment.GetEnvironmentVariable("HOME");
-            var dotnet = Path.Combine(homeDir, _directory);
-            var projectFile = Path.Combine(dotnet, _projectFileName);
-            return new Tuple<string, string>(dotnet, projectFile);
-        }
+            try
+            {
+                File.WriteAllText($"{scriptPath}", script.ToString());
+                if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    var chmod = Process.Start(new ProcessStartInfo
+                    {
+                        FileName = "chmod",
+                        Arguments = $"+x {scriptPath}",
+                        RedirectStandardOutput = true
+                    });
+                    chmod.WaitForExit();
+                    if (chmod.ExitCode != 0)
+                    {
+                        Error.WriteLine($"There was an error installing the tool: {chmod.StandardError.ReadToEnd()}");
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Error.WriteLine($"There was an error installing the tool. The error returned was: {e.Message}");
+            }
 
-        private void EnsureProjectExists(Tuple<string, string> paths)
+        }
+        private void EnsureProjectExists()
         {
             //var paths = GetDirAndProjectPaths();
             try
             {
-                if (!Directory.Exists(paths.Item1))
+                if (!Directory.Exists(_toolboxPaths.ToolboxDirectoryPath))
                 {
-                    Directory.CreateDirectory(paths.Item1);
+                    Directory.CreateDirectory(_toolboxPaths.ToolboxDirectoryPath);
                 }
-                if (!File.Exists(paths.Item2))
+                if (!File.Exists(_toolboxPaths.ToolboxProjectPath))
                 {
-                    File.WriteAllText(paths.Item2, _projectFile);
+                    File.WriteAllText(_toolboxPaths.ToolboxProjectPath, _projectFile);
                 }
             }
             catch (Exception e)
