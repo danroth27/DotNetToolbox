@@ -9,6 +9,10 @@ using System.Diagnostics;
 using NuGet.Configuration;
 using System.Linq;
 using Microsoft.Build.Construction;
+using NuGet.Protocol.Core.Types;
+using NuGet.Protocol;
+using System.Threading;
+using NuGet.Common;
 
 namespace DotNetToolbox
 {
@@ -40,13 +44,14 @@ namespace DotNetToolbox
         public async Task<int> Run()
         {
             var packageId = PackageArgument.Value;
-            if (!VersionOption.HasValue())
-            {
-                Error.WriteLine("The package version needs to be specified in the invocation");
-                return 1;
-            }
-            var packageVersion = VersionOption.Value();
+            //if (!VersionOption.HasValue())
+            //{
+            //    Error.WriteLine("The package version needs to be specified in the invocation");
+            //    return 1;
+            //}
+            //var packageVersion = VersionOption.Value();
             Out.WriteLine($"The package ID provided was {packageId}");
+            var packageVersion = VersionOption.HasValue() ? VersionOption.Value() : await ResolveLatestFromNuget(packageId);
 
             // Get the paths
             var paths = GetDirAndProjectPaths();
@@ -92,12 +97,17 @@ namespace DotNetToolbox
             // Out.WriteLine($"The home dir is {homeDir}");
             Out.WriteLine("Putting the tool into the path...");
             PutToolIntoPath(nugetPackagePath, pathToTool);
-            //var repo = Repository.Factory.GetCoreV3(NuGetConstants.V3FeedUrl);
-            //var resource = await repo.GetResourceAsync<MetadataResource>();
-            //resource.GetLatestVersion(string packageId, bool includePrerelease, bool includeUnlisted, ILogger log, CancellationToken token);
             Out.WriteLine("Task Completed!");
             return 0;
 
+        }
+
+        private async Task<string> ResolveLatestFromNuget(string packageId)
+        {
+            var repo = Repository.Factory.GetCoreV3(NuGetConstants.V3FeedUrl);
+            var resource = repo.GetResource<MetadataResource>();
+            var version = await resource.GetLatestVersion(packageId, true, false, NullLogger.Instance, CancellationToken.None);
+            return version.ToString();
         }
 
         private void PutToolIntoPath(string nugetPackagePath, string pathToTool)
