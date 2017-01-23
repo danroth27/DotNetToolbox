@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using System.Diagnostics;
 using NuGet.Configuration;
 using System.Linq;
+using Microsoft.Build.Construction;
 
 namespace DotNetToolbox
 {
@@ -38,10 +39,15 @@ namespace DotNetToolbox
         public async Task<int> Run()
         {
             var packageId = PackageArgument.Value;
+            if (!VersionOption.HasValue())
+            {
+                Error.WriteLine("The package version needs to be specified in the invocation");
+                return 1;
+            }
             var packageVersion = VersionOption.Value();
             Out.WriteLine($"The package ID provided was {packageId}");
             var homeDir = (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) ? Environment.GetEnvironmentVariable("USERPROFILE") : Environment.GetEnvironmentVariable("HOME");
-            var dotnet = Path.Combine(homeDir, ".dotnet");
+            var dotnet = Path.Combine(homeDir, ".toolbox");
             var projectFile = Path.Combine(dotnet, "globalTools.csproj");
             try
             {
@@ -58,20 +64,24 @@ namespace DotNetToolbox
             {
                 Error.WriteLine(e.Message);
             }
-            // Out.WriteLine(nugetPackagePath);
-            // return 0;
-            var pi = Process.Start(new ProcessStartInfo {
+            
+            // Add the ItemGroup
+            var projectRoot = ProjectRootElement.Open(projectFile);
+            var itemGroup = projectRoot.AddItemGroup();
+            itemGroup.AddItem("DotNetCliToolReference", packageId, new List<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Version", packageVersion)});
+            projectRoot.Save();
+            Out.WriteLine("Added the cli tool ref");
+            // return 1;
+            // Call restore 
+            Out.WriteLine("Installing the package...");
+            var restore = Process.Start(new ProcessStartInfo {
                 FileName = "dotnet",
-                Arguments = $"add package --version {packageVersion} {packageId}",
-                WorkingDirectory = dotnet,
-                UseShellExecute = false
+                Arguments = $"restore {projectFile}",
+                RedirectStandardOutput = false,
+                RedirectStandardError = false
             });
-            pi.WaitForExit();
-            if (pi.ExitCode != 0)
-            {
-                Error.WriteLine("The call to package failed");
-                Error.WriteLine(pi.StandardError.ReadToEnd());
-            }
+            restore.WaitForExit();
+
             // We have the package restored
             var nugetPackagePath = NuGetPathContext.Create(settingsRoot: String.Empty).UserPackageFolder.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             var fullPath = Path.Combine(nugetPackagePath, packageId, packageVersion, "lib", "netcoreapp1.0");
