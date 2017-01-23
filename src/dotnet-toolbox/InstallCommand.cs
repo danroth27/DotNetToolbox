@@ -95,12 +95,30 @@ namespace DotNetToolbox
             //var repo = Repository.Factory.GetCoreV3(NuGetConstants.V3FeedUrl);
             //var resource = await repo.GetResourceAsync<MetadataResource>();
             //resource.GetLatestVersion(string packageId, bool includePrerelease, bool includeUnlisted, ILogger log, CancellationToken token);
+            Out.WriteLine("Task Completed!");
             return 0;
 
         }
 
         private void PutToolIntoPath(string nugetPackagePath, string pathToTool)
         {
+            var script = new StringBuilder();
+            var scriptName = Path.GetFileNameWithoutExtension(pathToTool);
+            var homeDir = (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) ? Environment.GetEnvironmentVariable("USERPROFILE") : Environment.GetEnvironmentVariable("HOME");
+            var dotnet = Path.Combine(homeDir, _directory);
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                // Assume that the .toolbox is in the $PATH
+                script.AppendLine($"dotnet --additionalprobingpath {nugetPackagePath} {pathToTool}");
+                File.WriteAllText($"{Path.Combine(dotnet, scriptName)}.cmd", script.ToString());
+            }
+            else
+            {
+                script.AppendLine("#!/bin/sh");
+                script.AppendLine($"dotnet --additionalprobingpath {nugetPackagePath} {pathToTool}");
+                // Write it out
+            }
+            
         }
 
         private Tuple<string, string> GetDirAndProjectPaths()
