@@ -76,10 +76,10 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             });
             restore.WaitForExit();
             var restoredPackageVersion = GetRestoredPackageVersion(tempProjectDir, packageId);
-            Directory.Delete(tempProjectDir, recursive: true);
+            //Directory.Delete(tempProjectDir, recursive: true);
 
             // We have the package restored
-            var nugetPackagePath = NuGetPathContext.Create(settingsRoot: String.Empty).UserPackageFolder; //.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            var nugetPackagePath = NuGetPathContext.Create(settingsRoot: Directory.GetCurrentDirectory()).UserPackageFolder; //.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             var targetFramework = GetTargetFramework(nugetPackagePath, packageId, restoredPackageVersion);
             var fullPath = Path.Combine(nugetPackagePath, packageId, restoredPackageVersion, "lib", targetFramework);
             //Out.WriteLine(fullPath);

@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp1.1</TargetFramework>
+    <TargetFramework>netcoreapp1.0</TargetFramework>
     <RootNamespace>DotNetToolbox</RootNamespace>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <PackageTargetFallback Condition=" '$(TargetFramework)' == 'netcoreapp1.1' ">$(PackageTargetFallback);dotnet5.4</PackageTargetFallback>
@@ -14,7 +14,25 @@
     <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
     <PackageReference Include="Nuget.Configuration" Version="3.5.0" />
     <PackageReference Include="NuGet.Protocol.Core.v3" Version="3.5.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="1.1.0" />
-    <PackageReference Include="Microsoft.DiaSymReader.Native" Version="1.4.0" ExcludeAssets="Build" />
+    <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="1.0.0" />
   </ItemGroup>
+
+  <!-- workaround https://github.com/NuGet/Home/issues/4321
+  
+  When fixed, replace with this instead
+  <None Include="$(ProjectRuntimeConfigFilePath)" Pack="true" PackagePath="lib\$(TargetFramework)\" />
+  -->
+  <PropertyGroup>
+    <DefaultItemExcludes>$(DefaultItemExcludes);lib\**\*</DefaultItemExcludes>
+  </PropertyGroup>
+  <Target Name="PackRuntimeConfigurationFile" DependsOnTargets="GenerateBuildRuntimeConfigurationFiles" BeforeTargets="_GetPackageFiles">
+    <Copy SourceFiles="$(ProjectRuntimeConfigFilePath)" DestinationFolder="$(MSBuildProjectDirectory)\lib\netcoreapp1.0\" />
+    <ItemGroup>
+      <_PackageFiles Include="lib\netcoreapp1.0\*.json" BuildAction="None" PackagePath="%(Identity)" />
+    </ItemGroup>
+  </Target>
+  <Target Name="CleanupTempRuntimeConfigurationFile" AfterTargets="Pack">
+    <RemoveDir Directories="$(MSBuildProjectDirectory)\lib\" />
+  </Target>
+  
 </Project>
