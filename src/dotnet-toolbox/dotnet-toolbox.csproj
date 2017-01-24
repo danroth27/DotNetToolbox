@@ -14,6 +14,6 @@
     <PackageReference Include="Microsoft.Extensions.CommandLineUtils" Version="1.1.0" />
     <PackageReference Include="Nuget.Configuration" Version="3.5.0" />
     <PackageReference Include="NuGet.Protocol.Core.v3" Version="3.5.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="" />
+    <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="1.1.0" />
   </ItemGroup>
 </Project>
