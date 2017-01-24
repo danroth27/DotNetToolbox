@@ -5,9 +5,9 @@ using System.Text;
 
 namespace DotNetToolbox
 {
-    public class VersionOption : CommandOption
+    public class PackageVersionOption : CommandOption
     {
-        public VersionOption(CommandLineApplication app) : base("-v|--version", CommandOptionType.SingleValue)
+        public PackageVersionOption(CommandLineApplication app) : base("-v|--version", CommandOptionType.SingleValue)
         {
             App = app;
             Description = "Tool package version";

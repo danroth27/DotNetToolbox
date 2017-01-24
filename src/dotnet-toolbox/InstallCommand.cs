@@ -32,8 +32,8 @@ namespace DotNetToolbox
             Name = "install";
             PackageArgument = new PackageArgument(this);
             Arguments.Add(PackageArgument);
-            VersionOption = new VersionOption(this);
-            Options.Add(VersionOption);
+            PackageVersionOption = new PackageVersionOption(this);
+            Options.Add(PackageVersionOption);
             OnExecute((Func<Task<int>>)Run);
             Parent.Commands.Add(this);
             HelpOption("-h|--help");
@@ -41,14 +41,14 @@ namespace DotNetToolbox
         }
 
         public PackageArgument PackageArgument { get; set; }
-        public VersionOption VersionOption { get; set; }
+        public PackageVersionOption PackageVersionOption { get; set; }
 
         public async Task<int> Run()
         {
             var packageId = PackageArgument.Value;
             Out.WriteLine($"The tool ID to install: {packageId}");
             Out.WriteLine("Determining version...");
-            var packageVersion = VersionOption.HasValue() ? VersionOption.Value() : await ResolveLatestFromNuget(packageId);
+            var packageVersion = PackageVersionOption.HasValue() ? PackageVersionOption.Value() : await ResolveLatestFromNuget(packageId);
 
             // Get the paths
             //var paths = GetDirAndProjectPaths();
