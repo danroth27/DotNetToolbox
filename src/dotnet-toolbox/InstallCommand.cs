@@ -8,24 +8,19 @@ using System.Runtime.InteropServices;
 using System.Diagnostics;
 using NuGet.Configuration;
 using System.Linq;
-using Microsoft.Build.Construction;
 using NuGet.Protocol.Core.Types;
 using NuGet.Protocol;
 using System.Threading;
 using NuGet.Common;
+using Newtonsoft.Json.Linq;
 
 namespace DotNetToolbox
 {
     public class InstallCommand : CommandLineApplication
     {
         private const string _directory = ".toolbox";
-        private const string _projectFileName = "globaltools.csproj";
         private ToolboxPaths _toolboxPaths;
-        private string _projectFile = @"<Project Sdk=""Microsoft.NET.Sdk"">
-  <PropertyGroup>
-    <TargetFramework>netcoreapp1.0</TargetFramework>
-  </PropertyGroup>
-</Project>";
+
         public InstallCommand(CommandLineApplication parent)
         {
             Parent = parent;
@@ -46,45 +41,94 @@ namespace DotNetToolbox
         public async Task<int> Run()
         {
             var packageId = PackageArgument.Value;
-            Out.WriteLine($"The tool ID to install: {packageId}");
-            Out.WriteLine("Determining version...");
             var packageVersion = PackageVersionOption.HasValue() ? PackageVersionOption.Value() : "*";
+            Out.WriteLine($"Installing {packageId} {packageVersion}");
 
             // Get the paths
             //var paths = GetDirAndProjectPaths();
-            EnsureProjectExists();
-            
-            // Add the ItemGroup
-            var projectRoot = ProjectRootElement.Open(_toolboxPaths.ToolboxProjectPath);
-            var itemGroup = projectRoot.AddItemGroup();
-            itemGroup.AddItem("DotNetCliToolReference", packageId, new List<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Version", packageVersion)});
-            projectRoot.Save();
-            Out.WriteLine($"Added {packageId} to the store...");
-            // Call restore 
-            Out.WriteLine("Installing the package...");
-            var restore = Process.Start(new ProcessStartInfo {
+            EnsureToolboxDirectory();
+
+            // Create temp project to restore the tool
+            var restoreTargetFramework = GetTargetFrameworkForRestore();
+            var tempProjectDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            Directory.CreateDirectory(tempProjectDir);
+            var tempProjectPath = Path.Combine(tempProjectDir, "temp.csproj");
+            var tempProject =
+$@"<Project Sdk=""Microsoft.NET.Sdk"">
+  <PropertyGroup>
+    <TargetFramework>{restoreTargetFramework}</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include=""{packageId}"" Version=""{packageVersion}"" />
+  </ItemGroup>
+  <ItemGroup>
+    <DotNetCliToolReference Include=""{packageId}"" Version=""{packageVersion}"" />
+  </ItemGroup>
+</Project>";
+            File.WriteAllText(tempProjectPath, tempProject);
+            Out.WriteLine("Restoring tool packages...");
+            var restore = Process.Start(new ProcessStartInfo
+            {
                 FileName = "dotnet",
-                Arguments = $"restore {_toolboxPaths.ToolboxProjectPath}",
-                RedirectStandardOutput = true,
+                Arguments = $"restore {tempProjectPath}",
+                RedirectStandardOutput = false,
                 RedirectStandardError = false
             });
             restore.WaitForExit();
+            var restoredPackageVersion = GetRestoredPackageVersion(tempProjectDir, packageId);
+            Directory.Delete(tempProjectDir, recursive: true);
 
             // We have the package restored
-            var nugetPackagePath = NuGetPathContext.Create(settingsRoot: String.Empty).UserPackageFolder.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-            var fullPath = Path.Combine(nugetPackagePath, packageId, packageVersion, "lib", "netcoreapp1.0");
+            var nugetPackagePath = NuGetPathContext.Create(settingsRoot: String.Empty).UserPackageFolder; //.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            var targetFramework = GetTargetFramework(nugetPackagePath, packageId, restoredPackageVersion);
+            var fullPath = Path.Combine(nugetPackagePath, packageId, restoredPackageVersion, "lib", targetFramework);
             //Out.WriteLine(fullPath);
 
             // Find the dotnet-<foo> File
-            var pathToTool = Directory.GetFiles(fullPath, "dotnet*.dll").FirstOrDefault();
-            if (string.IsNullOrEmpty(pathToTool))
-                throw new Exception("The package does not contain a dotnet-*.dll file");
+            var toolPath = Directory.GetFiles(fullPath, "dotnet-*.dll").FirstOrDefault();
+            if (string.IsNullOrEmpty(toolPath))
+            {
+                throw new InvalidOperationException("The tool package does not contain a dotnet-*.dll file");
+            }
 
-            Out.WriteLine("Putting the tool into the path...");
-            PutToolIntoPath(nugetPackagePath, pathToTool);
-            Out.WriteLine("Task Completed!");
+            var toolFileName = Path.GetFileNameWithoutExtension(toolPath);
+            var toolName = toolFileName.Substring(toolFileName.IndexOf('-') + 1);
+
+            Out.WriteLine($"Adding {toolName} to the toolbox...");
+            PutToolIntoPath(nugetPackagePath, toolPath);
+            Out.WriteLine($"Added {toolName} to the toolbox! Type 'dotnet {toolName}' to run the tool");
             return 0;
+        }
 
+        private string GetTargetFramework(string nugetPackagePath, string packageId, string packageVersion)
+        {
+            var packageLibPath = Path.Combine(nugetPackagePath, packageId, packageVersion, "lib");
+            var toolTargets = Directory.GetDirectories(packageLibPath, "netcoreapp*");
+            return toolTargets
+                .Select(targetPath => new DirectoryInfo(targetPath).Name)
+                .OrderByDescending(target => target.Remove(0, "netcoreapp".Length).Split('.')[0])
+                .OrderByDescending(target => target.Remove(0, "netcoreapp".Length).Split('.')[1])
+                .First();
+        }
+
+        private string GetTargetFrameworkForRestore()
+        {
+            // TODO: Figure out the latest installed shared framework, maybe consider tool targets as well
+            // Hard code for now
+            return "netcoreapp1.1";
+        }
+
+        private string GetRestoredPackageVersion(string projectDir, string packageId)
+        {
+            var assetsFilePath = Path.Combine(projectDir, "obj", "project.assets.json");
+            var assetsFileText = File.ReadAllText(assetsFilePath);
+            var assetsFileJson = JObject.Parse(assetsFileText);
+            var packageIdWithVersion = assetsFileJson["libraries"]
+                .Children<JProperty>()
+                .First(lib => lib.Name.StartsWith($"{packageId}/"))
+                .Name;
+            var version = packageIdWithVersion.Split('/')[1];
+            return version;
         }
 
         private async Task<string> ResolveLatestFromNuget(string packageId)
@@ -134,7 +178,7 @@ namespace DotNetToolbox
             }
 
         }
-        private void EnsureProjectExists()
+        private void EnsureToolboxDirectory()
         {
             //var paths = GetDirAndProjectPaths();
             try
@@ -142,10 +186,6 @@ namespace DotNetToolbox
                 if (!Directory.Exists(_toolboxPaths.ToolboxDirectoryPath))
                 {
                     Directory.CreateDirectory(_toolboxPaths.ToolboxDirectoryPath);
-                }
-                if (!File.Exists(_toolboxPaths.ToolboxProjectPath))
-                {
-                    File.WriteAllText(_toolboxPaths.ToolboxProjectPath, _projectFile);
                 }
             }
             catch (Exception e)
