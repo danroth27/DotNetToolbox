@@ -8,7 +8,7 @@ Add-Type -assembly System.IO.Compression.FileSystem
 $outDir = "$outFile-extracted"
 Write-Host $outDir
 [System.IO.Compression.ZipFile]::ExtractToDirectory($outFile, $outDir)
-dotnet $([System.IO.Path]::Combine($outDir, "dotnet-toolbox.dll")) install dotnet-toolbox
+dotnet $([System.IO.Path]::Combine($outDir, "dotnet-toolbox.dll")) install dotnet-toolbox -v 1.0.0-*
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Could not install."
     exit 1

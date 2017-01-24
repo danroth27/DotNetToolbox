@@ -12,7 +12,7 @@ echo $outDir
 mkdir $outDir
 tar -xvzf $outFile -C $outDir
 echo $outDir
-dotnet "$outDir/dotnet-toolbox.dll" install dotnet-toolbox
+dotnet "$outDir/dotnet-toolbox.dll" install dotnet-toolbox -v 1.0.0-*
 if [ $? -ne 0 ]; then
     echo "Could not install."
     exit 1
