@@ -16,7 +16,6 @@
     <PackageReference Include="NuGet.Protocol.Core.v3" Version="3.5.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="1.0.0" />
   </ItemGroup>
-
   <!-- workaround https://github.com/NuGet/Home/issues/4321
   
   When fixed, replace with this instead
@@ -27,6 +26,7 @@
   </PropertyGroup>
   <Target Name="PackRuntimeConfigurationFile" DependsOnTargets="GenerateBuildRuntimeConfigurationFiles" BeforeTargets="_GetPackageFiles">
     <Copy SourceFiles="$(ProjectRuntimeConfigFilePath)" DestinationFolder="$(MSBuildProjectDirectory)\lib\netcoreapp1.0\" />
+    <Copy SourceFiles="$(ProjectDepsFilePath)" DestinationFolder="$(MSBuildProjectDirectory)\lib\netcoreapp1.0\" />
     <ItemGroup>
       <_PackageFiles Include="lib\netcoreapp1.0\*.json" BuildAction="None" PackagePath="%(Identity)" />
     </ItemGroup>
@@ -34,5 +34,4 @@
   <Target Name="CleanupTempRuntimeConfigurationFile" AfterTargets="Pack">
     <RemoveDir Directories="$(MSBuildProjectDirectory)\lib\" />
   </Target>
-  
 </Project>

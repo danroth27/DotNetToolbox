@@ -79,7 +79,9 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             //Directory.Delete(tempProjectDir, recursive: true);
 
             // We have the package restored
-            var nugetPackagePath = NuGetPathContext.Create(settingsRoot: Directory.GetCurrentDirectory()).UserPackageFolder; //.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            var nugetPackagePath = NuGetPathContext.Create(settingsRoot: Directory.GetCurrentDirectory()).UserPackageFolder
+                // The package probing path option can't end with a slash, so we trim it here
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             var targetFramework = GetTargetFramework(nugetPackagePath, packageId, restoredPackageVersion);
             var fullPath = Path.Combine(nugetPackagePath, packageId, restoredPackageVersion, "lib", targetFramework);
             //Out.WriteLine(fullPath);
@@ -145,7 +147,8 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             var scriptPath = Path.Combine(_toolboxPaths.ToolboxDirectoryPath, Path.GetFileNameWithoutExtension(pathToTool));
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                script.AppendLine($"dotnet --additionalprobingpath {nugetPackagePath} {pathToTool}");
+                script.AppendLine("@echo off");
+                script.AppendLine($"dotnet --additionalprobingpath {nugetPackagePath} {pathToTool} %*");
                 scriptPath += ".cmd";
             }
             else
