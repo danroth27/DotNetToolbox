@@ -48,7 +48,7 @@ namespace DotNetToolbox
             var packageId = PackageArgument.Value;
             Out.WriteLine($"The tool ID to install: {packageId}");
             Out.WriteLine("Determining version...");
-            var packageVersion = PackageVersionOption.HasValue() ? PackageVersionOption.Value() : await ResolveLatestFromNuget(packageId);
+            var packageVersion = PackageVersionOption.HasValue() ? PackageVersionOption.Value() : "*";
 
             // Get the paths
             //var paths = GetDirAndProjectPaths();
