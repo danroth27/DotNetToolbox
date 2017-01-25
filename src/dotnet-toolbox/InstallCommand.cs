@@ -13,6 +13,9 @@ using NuGet.Protocol;
 using System.Threading;
 using NuGet.Common;
 using Newtonsoft.Json.Linq;
+using Microsoft.Extensions.DependencyModel;
+using NuGet.Frameworks;
+using NuGet.ProjectModel;
 
 namespace DotNetToolbox
 {
@@ -66,6 +69,7 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
     <DotNetCliToolReference Include=""{packageId}"" Version=""{packageVersion}"" />
   </ItemGroup>
 </Project>";
+            Out.WriteLine(tempProject);
             File.WriteAllText(tempProjectPath, tempProject);
             Out.WriteLine("Restoring tool packages...");
             var restore = Process.Start(new ProcessStartInfo
@@ -86,6 +90,19 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             var targetFramework = GetTargetFramework(nugetPackagePath, packageId, restoredPackageVersion);
             var fullPath = Path.Combine(nugetPackagePath, packageId.ToLower(), restoredPackageVersion, "lib", targetFramework);
             //Out.WriteLine(fullPath);
+
+            var blah = new DepsJsonBuilder().Build(
+                new SingleProjectInfo(packageId, restoredPackageVersion, Enumerable.Empty<ResourceAssemblyInfo>()),
+                null,
+                new LockFileFormat().Read(Path.Combine(nugetPackagePath, ".tools", packageId, restoredPackageVersion, targetFramework, "project.assets.json")),
+                FrameworkConstants.CommonFrameworks.NetCoreApp10,
+                null
+                );
+            var dcw = new DependencyContextWriter();
+            var buffer = new MemoryStream();
+            dcw.Write(blah, buffer);
+            Out.WriteLine(new StreamReader(buffer).ReadToEnd());
+            return 0;
 
             // Find the dotnet-<foo> File
             var toolPath = Directory.GetFiles(fullPath, "dotnet-*.dll").FirstOrDefault();
