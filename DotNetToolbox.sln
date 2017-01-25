@@ -5,7 +5,7 @@ VisualStudioVersion = 15.0.26118.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{7F4D74AD-CF66-4607-8ACB-481E0DC107CD}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dotnet-toolbox", "src\dotnet-toolbox\dotnet-toolbox.csproj", "{4A717631-2BAD-4209-AA61-248C5BF6178B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dotnet-toolbox", "src\dotnet-toolbox\dotnet-toolbox.csproj", "{4A717631-2BAD-4209-AA61-248C5BF6178B}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{D1DF216D-D051-44A5-9CE9-BFABAE787749}"
 EndProject

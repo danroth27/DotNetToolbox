@@ -17,13 +17,14 @@ using Newtonsoft.Json.Linq;
 using NuGet.Frameworks;
 // using NuGet.ProjectModel;
 using DotNetToolbox.DepsTools;
+using DotNetToolbox.Helpers;
 
 namespace DotNetToolbox
 {
     public class InstallCommand : CommandLineApplication
     {
         private const string _directory = ".toolbox";
-        private ToolboxPaths _toolboxPaths;
+        private ToolboxConfiguration _toolboxConfig;
 
         public InstallCommand(CommandLineApplication parent)
         {
@@ -36,7 +37,7 @@ namespace DotNetToolbox
             OnExecute((Func<Task<int>>)Run);
             Parent.Commands.Add(this);
             HelpOption("-h|--help");
-            _toolboxPaths = new ToolboxPaths();
+            _toolboxConfig = new ToolboxConfiguration();
         }
 
         public PackageArgument PackageArgument { get; set; }
@@ -45,9 +46,11 @@ namespace DotNetToolbox
 
         public async Task<int> Run()
         {
-            var packageId = PackageArgument.Value;
-            var packageVersion = PackageVersionOption.HasValue() ? PackageVersionOption.Value() : "*";
+            //var packageId = PackageArgument.Value;
+            //var packageVersion = PackageVersionOption.HasValue() ? PackageVersionOption.Value() : "*";
+            var pkgMetadata = new PackageMetadata(PackageArgument.Value, PackageVersionOption);
             Out.WriteLine($"Installing {packageId} {packageVersion}");
+
 
             // Get the paths
             //var paths = GetDirAndProjectPaths();
@@ -81,6 +84,10 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
                 RedirectStandardError = false
             });
             restore.WaitForExit();
+
+            if (restore.ExitCode != 0)
+                this.Die(restore.StandardError.ReadToEnd());
+            
             var restoredPackageVersion = GetRestoredPackageVersion(tempProjectDir, packageId);
             //Directory.Delete(tempProjectDir, recursive: true);
 
@@ -95,7 +102,8 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             var toolFileName = Path.GetFileNameWithoutExtension(toolPath);
             if (string.IsNullOrEmpty(toolPath))
             {
-                throw new InvalidOperationException("The tool package does not contain a dotnet-*.dll file");
+                //throw new InvalidOperationException("The tool package does not contain a dotnet-*.dll file");
+                
             }
             var toolsFolder = Path.Combine(nugetPackagePath, ".tools", packageId, restoredPackageVersion, targetFramework);
             Out.WriteLine("Generating the runtime files for the tool...");
@@ -154,7 +162,7 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
         private void PutToolIntoPath(string nugetPackagePath, string pathToTool, string pathToDepsFile)
         {
             var script = new StringBuilder();
-            var scriptPath = Path.Combine(_toolboxPaths.ToolboxDirectoryPath, Path.GetFileNameWithoutExtension(pathToTool));
+            var scriptPath = Path.Combine(_toolboxConfig.ToolboxDirectoryPath, Path.GetFileNameWithoutExtension(pathToTool));
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 script.AppendLine("@echo off");
@@ -196,9 +204,9 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             //var paths = GetDirAndProjectPaths();
             try
             {
-                if (!Directory.Exists(_toolboxPaths.ToolboxDirectoryPath))
+                if (!Directory.Exists(_toolboxConfig.ToolboxDirectoryPath))
                 {
-                    Directory.CreateDirectory(_toolboxPaths.ToolboxDirectoryPath);
+                    Directory.CreateDirectory(_toolboxConfig.ToolboxDirectoryPath);
                 }
             }
             catch (Exception e)
