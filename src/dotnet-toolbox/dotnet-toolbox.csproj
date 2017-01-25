@@ -17,6 +17,7 @@
     <PackageReference Include="NuGet.ProjectModel" Version="4.0.0-rc3" />
     <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="1.0.1-beta-000933" />
   </ItemGroup>
+
   <!-- workaround https://github.com/NuGet/Home/issues/4321
   
   When fixed, replace with this instead

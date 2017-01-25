@@ -90,32 +90,46 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             var targetFramework = GetTargetFramework(nugetPackagePath, packageId, restoredPackageVersion);
             var fullPath = Path.Combine(nugetPackagePath, packageId.ToLower(), restoredPackageVersion, "lib", targetFramework);
             //Out.WriteLine(fullPath);
-
-            var blah = new DepsJsonBuilder().Build(
-                new SingleProjectInfo(packageId, restoredPackageVersion, Enumerable.Empty<ResourceAssemblyInfo>()),
-                null,
-                new LockFileFormat().Read(Path.Combine(nugetPackagePath, ".tools", packageId, restoredPackageVersion, targetFramework, "project.assets.json")),
-                FrameworkConstants.CommonFrameworks.NetCoreApp10,
-                null
-                );
-            var dcw = new DependencyContextWriter();
-            var buffer = new MemoryStream();
-            dcw.Write(blah, buffer);
-            Out.WriteLine(new StreamReader(buffer).ReadToEnd());
-            return 0;
-
-            // Find the dotnet-<foo> File
             var toolPath = Directory.GetFiles(fullPath, "dotnet-*.dll").FirstOrDefault();
+            var toolFileName = Path.GetFileNameWithoutExtension(toolPath);
             if (string.IsNullOrEmpty(toolPath))
             {
                 throw new InvalidOperationException("The tool package does not contain a dotnet-*.dll file");
             }
+            var toolsFolder = Path.Combine(nugetPackagePath, ".tools", packageId, restoredPackageVersion, targetFramework);
+            Out.WriteLine("Generating the runtime files for the tool...");
+            var blah = new DepsJsonBuilder().Build(
+                new SingleProjectInfo(packageId, restoredPackageVersion, Enumerable.Empty<ResourceAssemblyInfo>()),
+                null,
+                new LockFileFormat().Read(Path.Combine(toolsFolder, "project.assets.json")),
+                FrameworkConstants.CommonFrameworks.NetCoreApp10,
+                null
+                );
+            var dcw = new DependencyContextWriter();
+            var tempDepsFile = Path.GetTempFileName();
+            var destDepsFile = Path.Combine(toolsFolder, $"{toolFileName}.deps.json");
+            using (var file = File.Open(tempDepsFile, FileMode.OpenOrCreate, FileAccess.Write))
+            {
+                dcw.Write(blah, file);
+            }
+            try
+            {
+                File.Move(tempDepsFile, destDepsFile);
+            }
+            catch
+            {
+                // Error.WriteLine(e.Message);
+                throw;
+            }
 
-            var toolFileName = Path.GetFileNameWithoutExtension(toolPath);
+            // return 0;
+
+            // Find the dotnet-<foo> File
+
             var toolName = toolFileName.Substring(toolFileName.IndexOf('-') + 1);
 
             Out.WriteLine($"Adding {toolName} to the toolbox...");
-            PutToolIntoPath(nugetPackagePath, toolPath);
+            PutToolIntoPath(nugetPackagePath, toolPath, destDepsFile);
             Out.WriteLine($"Added {toolName} to the toolbox! Type 'dotnet {toolName}' to run the tool");
             return 0;
         }
@@ -159,20 +173,20 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             return version.ToString();
         }
 
-        private void PutToolIntoPath(string nugetPackagePath, string pathToTool)
+        private void PutToolIntoPath(string nugetPackagePath, string pathToTool, string pathToDepsFile)
         {
             var script = new StringBuilder();
             var scriptPath = Path.Combine(_toolboxPaths.ToolboxDirectoryPath, Path.GetFileNameWithoutExtension(pathToTool));
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 script.AppendLine("@echo off");
-                script.AppendLine($"dotnet --additionalprobingpath {nugetPackagePath} {pathToTool} %*");
+                script.AppendLine($"dotnet exec --depsfile {pathToDepsFile} --additionalprobingpath {nugetPackagePath} {pathToTool} %*");
                 scriptPath += ".cmd";
             }
             else
             {
                 script.AppendLine("#!/bin/sh");
-                script.AppendLine($"dotnet --additionalprobingpath {nugetPackagePath} {pathToTool} \"$@\"");
+                script.AppendLine($"dotnet exec --depsfile {pathToDepsFile} --additionalprobingpath {nugetPackagePath} {pathToTool} \"$@\"");
             }
 
             try
