@@ -1,3 +1,7 @@
+#! /bin/sh
+set -e
+apt-get update
+apt-get install zip
 dotnet restore
 dotnet pack -c Release -o /src/packages
 dotnet publish -c Release -o /src/publish/dotnet-toolbox
