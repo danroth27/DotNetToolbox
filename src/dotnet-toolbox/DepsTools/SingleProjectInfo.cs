@@ -3,9 +3,9 @@
 
 using System.Collections.Generic;
 
-namespace DotNetToolbox
+namespace DotNetToolbox.DepsTools
 {
-    internal class SingleProjectInfo
+    public class SingleProjectInfo
     {
         public string Name { get; }
         public string Version { get; }

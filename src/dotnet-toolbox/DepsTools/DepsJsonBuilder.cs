@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -12,9 +13,9 @@ using NuGet.Packaging;
 using NuGet.Packaging.Core;
 using NuGet.ProjectModel;
 
-namespace DotNetToolbox
+namespace DotNetToolbox.DepsTools
 {
-    internal class DepsJsonBuilder
+    public class DepsJsonBuilder
     {
         private readonly VersionFolderPathResolver _versionFolderPathResolver;
 
@@ -78,6 +79,35 @@ namespace DotNetToolbox
                 compilationLibraries,
                 runtimeLibraries,
                 new RuntimeFallbacks[] { });
+        }
+
+        public string GenerateDepsFile(string packageId, string restoredPackageVersion, string toolsFolder, string toolFileName)
+        {
+            var blah = new DepsJsonBuilder().Build(
+            new SingleProjectInfo(packageId, restoredPackageVersion, Enumerable.Empty<ResourceAssemblyInfo>()),
+            null,
+            new LockFileFormat().Read(Path.Combine(toolsFolder, "project.assets.json")),
+            FrameworkConstants.CommonFrameworks.NetCoreApp10,
+            null
+            );
+            var dcw = new DependencyContextWriter();
+            var tempDepsFile = Path.GetTempFileName();
+            var destDepsFile = Path.Combine(toolsFolder, $"{toolFileName}.deps.json");
+            using (var file = File.Open(tempDepsFile, FileMode.OpenOrCreate, FileAccess.Write))
+            {
+                dcw.Write(blah, file);
+            }
+            try
+            {
+                File.Move(tempDepsFile, destDepsFile);
+                return destDepsFile;
+            }
+            catch
+            {
+                // Error.WriteLine(e.Message);
+                throw;
+            }
+
         }
 
         private static string GenerateRuntimeSignature(IEnumerable<LockFileTargetLibrary> runtimeExports)

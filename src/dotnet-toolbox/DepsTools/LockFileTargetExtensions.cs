@@ -7,9 +7,9 @@ using System.Linq;
 using NuGet.Packaging.Core;
 using NuGet.ProjectModel;
 
-namespace DotNetToolbox
+namespace DotNetToolbox.DepsTools
 {
-    internal static class LockFileTargetExtensions
+    public static class LockFileTargetExtensions
     {
         public static bool IsPortable(this LockFileTarget lockFileTarget)
         {

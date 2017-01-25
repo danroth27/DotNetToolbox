@@ -8,9 +8,9 @@ using System.Linq;
 using NuGet.Packaging.Core;
 using NuGet.ProjectModel;
 
-namespace DotNetToolbox
+namespace DotNetToolbox.DepsTools
 {
-    internal static class NuGetUtils
+    public static class NuGetUtils
     {
         public static bool IsPlaceholderFile(string path)
         {

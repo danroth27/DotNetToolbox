@@ -13,9 +13,10 @@ using NuGet.Protocol;
 using System.Threading;
 using NuGet.Common;
 using Newtonsoft.Json.Linq;
-using Microsoft.Extensions.DependencyModel;
+// using Microsoft.Extensions.DependencyModel;
 using NuGet.Frameworks;
-using NuGet.ProjectModel;
+// using NuGet.ProjectModel;
+using DotNetToolbox.DepsTools;
 
 namespace DotNetToolbox
 {
@@ -98,30 +99,7 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             }
             var toolsFolder = Path.Combine(nugetPackagePath, ".tools", packageId, restoredPackageVersion, targetFramework);
             Out.WriteLine("Generating the runtime files for the tool...");
-            var blah = new DepsJsonBuilder().Build(
-                new SingleProjectInfo(packageId, restoredPackageVersion, Enumerable.Empty<ResourceAssemblyInfo>()),
-                null,
-                new LockFileFormat().Read(Path.Combine(toolsFolder, "project.assets.json")),
-                FrameworkConstants.CommonFrameworks.NetCoreApp10,
-                null
-                );
-            var dcw = new DependencyContextWriter();
-            var tempDepsFile = Path.GetTempFileName();
-            var destDepsFile = Path.Combine(toolsFolder, $"{toolFileName}.deps.json");
-            using (var file = File.Open(tempDepsFile, FileMode.OpenOrCreate, FileAccess.Write))
-            {
-                dcw.Write(blah, file);
-            }
-            try
-            {
-                File.Move(tempDepsFile, destDepsFile);
-            }
-            catch
-            {
-                // Error.WriteLine(e.Message);
-                throw;
-            }
-
+            var destDepsFile = new DepsJsonBuilder().GenerateDepsFile(packageId, restoredPackageVersion, toolsFolder, toolFileName);
             // return 0;
 
             // Find the dotnet-<foo> File

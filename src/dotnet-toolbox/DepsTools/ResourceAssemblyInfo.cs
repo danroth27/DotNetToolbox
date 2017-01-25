@@ -1,9 +1,9 @@
 // Copyright (c) .NET Foundation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-namespace DotNetToolbox
+namespace DotNetToolbox.DepsTools
 {
-    internal class ResourceAssemblyInfo
+    public class ResourceAssemblyInfo
     {
         public string Culture { get; }
         public string RelativePath { get; }
