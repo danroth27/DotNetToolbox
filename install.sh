@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-releases=$(curl https://github.com/danroth27/dotnettoolbox/releases.atom)
-uri="https://github.com/danroth27/dotnettoolbox/releases/download/$(echo $releases | grep -oPm1 "(?<=<title>)[^<]+" | sed -n 2p)/dotnet-toolbox.tar.gz"
+uri="https://github.com/danroth27/DotNetToolbox/releases/download/0.1.0/dotnet-toolbox.tar.gz"
 if command -v tempfile >/dev/null 2>&1; then
     outFile=`tempfile`
 else
