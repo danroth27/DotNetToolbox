@@ -83,7 +83,7 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
                 // The package probing path option can't end with a slash, so we trim it here
                 .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             var targetFramework = GetTargetFramework(nugetPackagePath, packageId, restoredPackageVersion);
-            var fullPath = Path.Combine(nugetPackagePath, packageId, restoredPackageVersion, "lib", targetFramework);
+            var fullPath = Path.Combine(nugetPackagePath, packageId.ToLower(), restoredPackageVersion, "lib", targetFramework);
             //Out.WriteLine(fullPath);
 
             // Find the dotnet-<foo> File
