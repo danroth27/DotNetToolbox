@@ -104,7 +104,7 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
 
         private string GetTargetFramework(string nugetPackagePath, string packageId, string packageVersion)
         {
-            var packageLibPath = Path.Combine(nugetPackagePath, packageId, packageVersion, "lib");
+            var packageLibPath = Path.Combine(nugetPackagePath, packageId.ToLower(), packageVersion, "lib");
             var toolTargets = Directory.GetDirectories(packageLibPath, "netcoreapp*");
             return toolTargets
                 .Select(targetPath => new DirectoryInfo(targetPath).Name)
