@@ -5,9 +5,8 @@ dotnet pack -c Release -o /src/packages
 dotnet publish -c Release -o /src/publish/dotnet-toolbox
 apt-get update
 apt-get -y install zip
-mkdir /src/publish/$Version
-zip -r /src/publish/$Version/dotnet-toolbox.zip /src/publish/dotnet-toolbox 
-tar -cvzf /src/publish/$Version/dotnet-toolbox.tar.gz /src/publish/dotnet-toolbox
+zip -r /src/publish/dotnet-toolbox.zip /src/publish/dotnet-toolbox 
+tar -cvzf /src/publish/dotnet-toolbox.tar.gz /src/publish/dotnet-toolbox
 apt-get -y install jq
 release=$(curl https://api.github.com/repos/danroth27/dotnettoolbox/releases/latest)
 asset_ids=$(echo $release | jq '.assets | .[] | .id')
