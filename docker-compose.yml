@@ -7,7 +7,6 @@ services:
       - .:/src
     working_dir: /src
     environment:
-      - VersionPrefix=${VersionPrefix}
-      - VersionSuffix=${VersionSuffix}
+      - Version=${Version}
       - GitHubToken=${GitHubToken}
     command: /bin/bash docker-build.sh
