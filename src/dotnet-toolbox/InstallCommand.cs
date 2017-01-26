@@ -48,8 +48,8 @@ namespace DotNetToolbox
         {
             //var packageId = PackageArgument.Value;
             //var packageVersion = PackageVersionOption.HasValue() ? PackageVersionOption.Value() : "*";
-            var pkgMetadata = new PackageMetadata(PackageArgument.Value, PackageVersionOption);
-            Out.WriteLine($"Installing {packageId} {packageVersion}");
+            var pkgMetadata = new PackageMetadata(PackageArgument, PackageVersionOption);
+            Out.WriteLine($"Installing {pkgMetadata.PackageId} {pkgMetadata.RequestedVersion}");
 
 
             // Get the paths
@@ -67,10 +67,10 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
     <TargetFramework>{restoreTargetFramework}</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include=""{packageId}"" Version=""{packageVersion}"" />
+    <PackageReference Include=""{pkgMetadata.PackageId}"" Version=""{pkgMetadata.RequestedVersion}"" />
   </ItemGroup>
   <ItemGroup>
-    <DotNetCliToolReference Include=""{packageId}"" Version=""{packageVersion}"" />
+    <DotNetCliToolReference Include=""{pkgMetadata.PackageId}"" Version=""{pkgMetadata.RequestedVersion}"" />
   </ItemGroup>
 </Project>";
             Out.WriteLine(tempProject);
@@ -88,26 +88,27 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             if (restore.ExitCode != 0)
                 this.Die(restore.StandardError.ReadToEnd());
             
-            var restoredPackageVersion = GetRestoredPackageVersion(tempProjectDir, packageId);
+            var restoredPackageVersion = GetRestoredPackageVersion(tempProjectDir, pkgMetadata.PackageId);
             //Directory.Delete(tempProjectDir, recursive: true);
 
             // We have the package restored
             var nugetPackagePath = NuGetPathContext.Create(settingsRoot: Directory.GetCurrentDirectory()).UserPackageFolder
                 // The package probing path option can't end with a slash, so we trim it here
                 .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-            var targetFramework = GetTargetFramework(nugetPackagePath, packageId, restoredPackageVersion);
-            var fullPath = Path.Combine(nugetPackagePath, packageId.ToLower(), restoredPackageVersion, "lib", targetFramework);
+            var targetFramework = GetTargetFramework(nugetPackagePath, pkgMetadata.PackageId, restoredPackageVersion);
+            var fullPath = Path.Combine(nugetPackagePath, pkgMetadata.PackageId.ToLower(), restoredPackageVersion, "lib", targetFramework);
             //Out.WriteLine(fullPath);
             var toolPath = Directory.GetFiles(fullPath, "dotnet-*.dll").FirstOrDefault();
             var toolFileName = Path.GetFileNameWithoutExtension(toolPath);
             if (string.IsNullOrEmpty(toolPath))
             {
                 //throw new InvalidOperationException("The tool package does not contain a dotnet-*.dll file");
+                this.Die("The tool package does not contain an assembly name the correct way.");
                 
             }
-            var toolsFolder = Path.Combine(nugetPackagePath, ".tools", packageId, restoredPackageVersion, targetFramework);
+            var toolsFolder = Path.Combine(nugetPackagePath, ".tools", pkgMetadata.PackageId, restoredPackageVersion, targetFramework);
             Out.WriteLine("Generating the runtime files for the tool...");
-            var destDepsFile = new DepsJsonBuilder().GenerateDepsFile(packageId, restoredPackageVersion, toolsFolder, toolFileName);
+            var destDepsFile = new DepsJsonBuilder().GenerateDepsFile(pkgMetadata.PackageId, restoredPackageVersion, toolsFolder, toolFileName);
             // return 0;
 
             // Find the dotnet-<foo> File
