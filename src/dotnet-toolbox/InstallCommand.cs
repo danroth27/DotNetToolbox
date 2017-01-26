@@ -154,7 +154,7 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             else
             {
                 script.AppendLine("#!/bin/sh");
-                script.AppendLine($"dotnet --additionalprobingpath {nugetPackagePath} {pathToTool}");
+                script.AppendLine($"dotnet --additionalprobingpath {nugetPackagePath} {pathToTool} \"$@\"");
             }
 
             try
