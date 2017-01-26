@@ -15,6 +15,6 @@ do
   curl -X DELETE https://api.github.com/repos/danroth27/dotnettoolbox/releases/assets/$id -u $GitHubToken:
 done
 cd /src/publish
-release_id=$(echo release | jq .id)
+release_id=$(echo $release | jq .id)
 curl -X POST -H 'Content-Type:application/zip' --data-binary @dotnet-toolbox.zip https://uploads.github.com/repos/danroth27/dotnettoolbox/releases/$release_id/assets?name=dotnet-toolbox.zip -u $GitHubToken:
 curl -X POST -H 'Content-Type:application/zip' --data-binary @dotnet-toolbox.tar.gz https://uploads.github.com/repos/danroth27/dotnettoolbox/releases/$release_id/assets?name=dotnet-toolbox.tar.gz -u $GitHubToken:
