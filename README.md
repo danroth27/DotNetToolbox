@@ -1,3 +1,4 @@
+
 # .NET Core Toolbox
 
 The .NET Core Toolbox gives you a simple way to install and run .NET Core tools.
@@ -28,4 +29,31 @@ Now run one of the installation scripts below:
 ```
 dotnet toolbox install <tool_package> [-v <version>]
 dotnet <installed_tool>
+```
+
+## Creating toolbox tools
+
+Toolbox tools are just ordinary .NET Core console apps that have been packaged into a NuGet package using `dotnet pack`. 
+
+The tool package currently must contain a deps file and a runtime config file to work with Toolbox. You can include these files by adding the following targets to your project:
+
+```xml
+<!-- workaround https://github.com/NuGet/Home/issues/4321
+
+When fixed, replace with this instead
+<None Include="$(ProjectRuntimeConfigFilePath)" Pack="true" PackagePath="lib\$(TargetFramework)\" />
+-->
+<PropertyGroup>
+  <DefaultItemExcludes>$(DefaultItemExcludes);lib\**\*</DefaultItemExcludes>
+</PropertyGroup>
+<Target Name="PackRuntimeConfigurationFile" DependsOnTargets="GenerateBuildRuntimeConfigurationFiles" BeforeTargets="_GetPackageFiles">
+  <Copy SourceFiles="$(ProjectRuntimeConfigFilePath)" DestinationFolder="$(MSBuildProjectDirectory)\lib\netcoreapp1.0\" />
+  <Copy SourceFiles="$(ProjectDepsFilePath)" DestinationFolder="$(MSBuildProjectDirectory)\lib\netcoreapp1.0\" />
+  <ItemGroup>
+    <_PackageFiles Include="lib\netcoreapp1.0\*.json" BuildAction="None" PackagePath="%(Identity)" />
+  </ItemGroup>
+</Target>
+<Target Name="CleanupTempRuntimeConfigurationFile" AfterTargets="Pack">
+  <RemoveDir Directories="$(MSBuildProjectDirectory)\lib\" />
+</Target>
 ```
