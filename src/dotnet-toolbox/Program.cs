@@ -15,6 +15,7 @@ namespace DotNetToolbox
 
             app.OnExecute(() =>
             {
+                app.ShowHelp();
                 return 0;
             });
 
