@@ -37,11 +37,26 @@ dotnet toolbox install <tool_package> [-v <version>]
 dotnet <installed_tool>
 ```
 
-## Creating toolbox tools
+## Creating Toolbox tools
 
 Toolbox tools are just ordinary .NET Core console apps that have been packaged into a NuGet package using `dotnet pack`. 
 
-The tool package currently must contain a deps file and a runtime config file to work with Toolbox. You can include these files by adding the following targets to your project:
+1. Create a new .NET Core console app. Call it `dotnet-<your-tool-name>` and make sure it targets `netcoreapp1.0`
+
+```cmd
+mkdir dotnet-hello-world
+cd dotnet-hello-world
+dotnet new
+```
+
+2. Restore packages and then pack your tool after you've finished implementing it
+
+```cmd
+dotnet restore
+dotnet pack
+```
+
+3. The tool package currently must contain a deps file and a runtime config file to work with Toolbox. You can include these files by adding the following targets to your project:
 
 ```xml
 <!-- workaround https://github.com/NuGet/Home/issues/4321
@@ -62,4 +77,19 @@ When fixed, replace with this instead
 <Target Name="CleanupTempRuntimeConfigurationFile" AfterTargets="Pack">
   <RemoveDir Directories="$(MSBuildProjectDirectory)\lib\" />
 </Target>
+```
+
+4. Publish your tool package to your favorite NuGet feed, like https://nuget.org or https://myget.org.
+
+5. Install your tool into the Toolbox. Make sure you've configured the right NuGet feed to get the tool from, or specify the feed directly using the `--source` option.
+
+```cmd
+dotnet install dotnet-hello-world
+```
+
+6. Your tool is now in your Toolbox and ready to run!
+
+```cmd
+dotnet hello-world
+Hello World!
 ```
