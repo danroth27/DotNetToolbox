@@ -8,6 +8,7 @@ using System.Linq;
 using Newtonsoft.Json.Linq;
 using DotNetToolbox.DepsTools;
 using DotNetToolbox.Helpers;
+using DotNetToolbox.VersionMetadata;
 
 namespace DotNetToolbox
 {
@@ -166,14 +167,24 @@ namespace DotNetToolbox
         //TODO: move this into its own class in future refactoring...
         private void WriteVersionToMetadata(PackageMetadata pkg)
         {
+            //try
+            //{
+            //    File.AppendAllText(_toolboxConfig.VersionsFile, $"{pkg.PackageId}={pkg.RestoredVersion}\n");
+            //}
+            //catch (Exception e)
+            //{
+            //    this.Die(e.Message);
+            //}
             try
             {
-                File.AppendAllText(_toolboxConfig.VersionsFile, $"{pkg.PackageId}={pkg.RestoredVersion}\n");
+                var versionFile = new VersionFile(_toolboxConfig.VersionsFile);
+                versionFile.WriteVersion(pkg);
             }
-            catch (Exception e)
+            catch
             {
-                this.Die(e.Message);
+                throw;
             }
+
         }
     }
 }
