@@ -1,4 +1,3 @@
-
 # .NET Core Toolbox
 
 The .NET Core Toolbox gives you a simple way to install and run .NET Core tools.
@@ -22,6 +21,13 @@ Now run one of the installation scripts below:
 ### Bash
 ```bash
 \curl -sSL https://raw.githubusercontent.com/danroth27/dotnettoolbox/master/install.sh | bash
+```
+
+### Update to latest build
+
+After running the install script you can run the following to update to the latest build on [MyGet](https://www.myget.org/gallery/danroth27):
+```cmd
+dotnet toolbox install dotnet-toolbox -v 1.0.0-* -s https://www.myget.org/F/danroth27/api/v3/index.json
 ```
 
 ## Usage
