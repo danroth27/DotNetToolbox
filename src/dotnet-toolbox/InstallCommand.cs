@@ -28,7 +28,7 @@ namespace DotNetToolbox
             PackageArgument = new PackageArgument(this);
             Arguments.Add(PackageArgument);
             PackageVersionOption = new PackageVersionOption(this);
-            Options.Add(PackageVersionOption);
+            SourceOption = new SourceOption(this);
             OnExecute((Func<Task<int>>)Run);
             Parent.Commands.Add(this);
             HelpOption("-h|--help");
@@ -37,6 +37,7 @@ namespace DotNetToolbox
 
         public PackageArgument PackageArgument { get; set; }
         public PackageVersionOption PackageVersionOption { get; set; }
+        public SourceOption SourceOption { get; set; }
 
         public async Task<int> Run()
         {
@@ -70,7 +71,7 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             var restore = Process.Start(new ProcessStartInfo
             {
                 FileName = "dotnet",
-                Arguments = $"restore {tempProjectPath}",
+                Arguments = SourceOption.HasValue() ? $"restore {tempProjectPath} -s {SourceOption.Value()}" : $"restore {tempProjectPath}",
                 RedirectStandardOutput = false,
                 RedirectStandardError = false
             });

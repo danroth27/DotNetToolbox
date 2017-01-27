@@ -11,6 +11,7 @@ namespace DotNetToolbox
         {
             App = app;
             Description = "Tool package version";
+            App.Options.Add(this);
         }
 
         public CommandLineApplication App { get; set; }
