@@ -55,9 +55,8 @@ namespace DotNetToolbox
 
 
             pkgMetadata.RestoredVersion = GetRestoredPackageVersion(_toolboxConfig.TempProjectPath, pkgMetadata.PackageId);
-            //Directory.Delete(tempProjectDir, recursive: true);
 
-            // We have the package restored
+            // We have the package restored, find out the dotnet-*.dll and create needed paths
             var targetFramework = GetTargetFramework(_toolboxConfig.NugetPackageRoot, pkgMetadata);
 
             var toolRootPath = Path.Combine(_toolboxConfig.NugetPackageRoot, pkgMetadata.PackageId, pkgMetadata.RestoredVersion, "lib", targetFramework);
@@ -79,6 +78,7 @@ namespace DotNetToolbox
 
             Out.WriteLine($"Adding {toolName} to the toolbox...");
             GenerateScriptForTool(_toolboxConfig.NugetPackageRoot, toolBinaryPath, toolDepsFile);
+            WriteVersionToMetadata(pkgMetadata);
             Out.WriteLine($"Added {toolName} to the toolbox! Type 'dotnet {toolName}' to run the tool");
             return 0;
         }
@@ -161,6 +161,19 @@ namespace DotNetToolbox
                 Error.WriteLine(e.Message);
             }
 
+        }
+
+        //TODO: move this into its own class in future refactoring...
+        private void WriteVersionToMetadata(PackageMetadata pkg)
+        {
+            try
+            {
+                File.AppendAllText(_toolboxConfig.VersionsFile, $"{pkg.PackageId}={pkg.RestoredVersion}\n");
+            }
+            catch (Exception e)
+            {
+                this.Die(e.Message);
+            }
         }
     }
 }

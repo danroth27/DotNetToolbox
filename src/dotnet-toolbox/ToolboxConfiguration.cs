@@ -38,7 +38,7 @@ namespace DotNetToolbox
             NugetPackageRoot = NuGetPathContext.Create(settingsRoot: Directory.GetCurrentDirectory()).UserPackageFolder
                 // The package probing path option can't end with a slash, so we trim it here
                 .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);;
-            VersionsFile = Path.Combine(ToolboxDirectoryPath, "versions.json");
+            VersionsFile = Path.Combine(ToolboxDirectoryPath, "versions.txt");
             var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             Directory.CreateDirectory(tempDir);
             TempProjectPath = Path.Combine(tempDir, _toolboxProject);
