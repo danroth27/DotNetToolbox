@@ -2,7 +2,7 @@
   "profiles": {
     "dotnet-toolbox": {
       "commandName": "Project",
-      "commandLineArgs": "install Microsoft.DotNet.Watcher.Tools -v 1.0.0-msbuild2-final"
+      "commandLineArgs": "install Microsoft.DotNet.Watcher.Tools -v 1.1.0-msbuild4-final"
     }
   }
 }
