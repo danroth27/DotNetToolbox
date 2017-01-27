@@ -1,21 +1,11 @@
 ﻿using Microsoft.Extensions.CommandLineUtils;
 using System;
-using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Diagnostics;
-using NuGet.Configuration;
 using System.Linq;
-using NuGet.Protocol.Core.Types;
-using NuGet.Protocol;
-using System.Threading;
-using NuGet.Common;
 using Newtonsoft.Json.Linq;
-// using Microsoft.Extensions.DependencyModel;
-using NuGet.Frameworks;
-// using NuGet.ProjectModel;
 using DotNetToolbox.DepsTools;
 using DotNetToolbox.Helpers;
 
@@ -46,52 +36,37 @@ namespace DotNetToolbox
 
         public async Task<int> Run()
         {
-            //var packageId = PackageArgument.Value;
-            //var packageVersion = PackageVersionOption.HasValue() ? PackageVersionOption.Value() : "*";
             var pkgMetadata = new PackageMetadata(PackageArgument, PackageVersionOption);
             Out.WriteLine($"Installing {pkgMetadata.PackageId} {pkgMetadata.RequestedVersion}");
 
 
-            // Get the paths
-            //var paths = GetDirAndProjectPaths();
             EnsureToolboxDirExists();
 
             // Create temp project to restore the tool
             var restoreTargetFramework = GetTargetFrameworkForRestore();
-            var tempProjectDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-            Directory.CreateDirectory(tempProjectDir);
-            var tempProjectPath = Path.Combine(tempProjectDir, "temp.csproj");
-            var tempProject =
-$@"<Project Sdk=""Microsoft.NET.Sdk"">
-  <PropertyGroup>
-    <TargetFramework>{restoreTargetFramework}</TargetFramework>
-  </PropertyGroup>
-  <ItemGroup>
-    <PackageReference Include=""{pkgMetadata.PackageId}"" Version=""{pkgMetadata.RequestedVersion}"" />
-  </ItemGroup>
-  <ItemGroup>
-    <DotNetCliToolReference Include=""{pkgMetadata.PackageId}"" Version=""{pkgMetadata.RequestedVersion}"" />
-  </ItemGroup>
-</Project>";
-            Out.WriteLine(tempProject);
-            File.WriteAllText(tempProjectPath, tempProject);
-            Out.WriteLine("Restoring tool packages...");
-            ExternalCommand.Create("dotnet", "restore", tempProjectPath).Execute().EnsureSuccessful();
+            File.WriteAllText(_toolboxConfig.TempProjectPath, 
+                              String.Format(_toolboxConfig.DefaultProject, 
+                                            restoreTargetFramework, 
+                                            pkgMetadata.PackageId, 
+                                            pkgMetadata.RequestedVersion));
 
-            pkgMetadata.RestoredVersion = GetRestoredPackageVersion(tempProjectDir, pkgMetadata.PackageId);
+            Out.WriteLine("Restoring tool packages...");
+            ExternalCommand.Create("dotnet", "restore", _toolboxConfig.TempProjectPath).Execute().EnsureSuccessful();
+
+
+            pkgMetadata.RestoredVersion = GetRestoredPackageVersion(_toolboxConfig.TempProjectPath, pkgMetadata.PackageId);
             //Directory.Delete(tempProjectDir, recursive: true);
 
             // We have the package restored
-            var targetFramework = GetTargetFramework(_toolboxConfig.NugetPackageRoot, pkgMetadata.PackageId, pkgMetadata.RestoredVersion);
+            var targetFramework = GetTargetFramework(_toolboxConfig.NugetPackageRoot, pkgMetadata);
+
             var toolRootPath = Path.Combine(_toolboxConfig.NugetPackageRoot, pkgMetadata.PackageId, pkgMetadata.RestoredVersion, "lib", targetFramework);
-            //Out.WriteLine(fullPath);
             var toolBinaryPath = Directory.GetFiles(toolRootPath, "dotnet-*.dll").FirstOrDefault();
             var toolFileName = Path.GetFileNameWithoutExtension(toolBinaryPath);
             if (string.IsNullOrEmpty(toolBinaryPath))
             {
-                //throw new InvalidOperationException("The tool package does not contain a dotnet-*.dll file");
                 this.Die("The tool package does not contain an assembly name the correct way.");
-                
+
             }
             var toolsFolder = Path.Combine(_toolboxConfig.NugetPackageRoot, ".tools", pkgMetadata.PackageId, pkgMetadata.RestoredVersion, targetFramework);
             Out.WriteLine("Generating the runtime files for the tool...");
@@ -108,9 +83,9 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             return 0;
         }
 
-        private string GetTargetFramework(string nugetPackagePath, string packageId, string packageVersion)
+        private string GetTargetFramework(string nugetPackagePath, PackageMetadata pkg)
         {
-            var packageLibPath = Path.Combine(nugetPackagePath, packageId.ToLower(), packageVersion, "lib");
+            var packageLibPath = Path.Combine(nugetPackagePath, pkg.PackageId.ToLower(), pkg.RestoredVersion, "lib");
             var toolTargets = Directory.GetDirectories(packageLibPath, "netcoreapp*");
             return toolTargets
                 .Select(targetPath => new DirectoryInfo(targetPath).Name)
@@ -128,7 +103,7 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
 
         private string GetRestoredPackageVersion(string projectDir, string packageId)
         {
-            var assetsFilePath = Path.Combine(projectDir, "obj", "project.assets.json");
+            var assetsFilePath = Path.Combine(Path.GetDirectoryName(projectDir), "obj", "project.assets.json");
             var assetsFileText = File.ReadAllText(assetsFilePath);
             var assetsFileJson = JObject.Parse(assetsFileText);
             var packageIdWithVersion = assetsFileJson["libraries"]
@@ -161,7 +136,7 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
                 File.WriteAllText($"{scriptPath}", script.ToString());
                 if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
-                    ExternalCommand.Create("chmod", "+x", scriptPath).Execute().EnsureSuccessful();
+                    ExternalCommand.Create("chmod", "+x", scriptPath).CaptureStandardOut().Execute().EnsureSuccessful();
                 }
             }
             catch (Exception e)
@@ -170,6 +145,7 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             }
 
         }
+
         private void EnsureToolboxDirExists()
         {
             //var paths = GetDirAndProjectPaths();

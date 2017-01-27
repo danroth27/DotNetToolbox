@@ -14,9 +14,21 @@ namespace DotNetToolbox
         public string HomeDirectory { get; }
         public string NugetPackageRoot { get; }
         public string VersionsFile { get; }
+        public string DefaultProject = @"<Project Sdk=""Microsoft.NET.Sdk"">
+  <PropertyGroup>
+    <TargetFramework>{0}</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include=""{1}"" Version=""{2}"" />
+  </ItemGroup>
+  <ItemGroup>
+    <DotNetCliToolReference Include=""{1}"" Version=""{2}"" />
+  </ItemGroup>
+</Project>";
+        public string TempProjectPath { get; }
 
         private const string _toolboxDirectory = ".toolbox";
-        private const string _toolboxProject = "globaltools.csproj";
+        private const string _toolboxProject = "temp.csproj";
 
         public ToolboxConfiguration()
         {
@@ -27,6 +39,9 @@ namespace DotNetToolbox
                 // The package probing path option can't end with a slash, so we trim it here
                 .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);;
             VersionsFile = Path.Combine(ToolboxDirectoryPath, "versions.json");
+            var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            Directory.CreateDirectory(tempDir);
+            TempProjectPath = Path.Combine(tempDir, _toolboxProject);
         }
 
     }
