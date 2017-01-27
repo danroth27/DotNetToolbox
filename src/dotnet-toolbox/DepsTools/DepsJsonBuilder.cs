@@ -81,10 +81,17 @@ namespace DotNetToolbox.DepsTools
                 new RuntimeFallbacks[] { });
         }
 
-        public string GenerateDepsFile(string packageId, string restoredPackageVersion, string toolsFolder, string toolFileName)
+        /// <summary>
+        /// Generates the deps file for the tool. 
+        /// </summary>
+        /// <returns>The path to the deps file.</returns>
+        /// <param name="pkg">Package metadata.</param>
+        /// <param name="toolsFolder">Tools folder.</param>
+        /// <param name="toolFileName">Tool file name.</param>
+        public string GenerateDepsFile(PackageMetadata pkg, string toolsFolder, string toolFileName)
         {
-            var blah = new DepsJsonBuilder().Build(
-            new SingleProjectInfo(packageId, restoredPackageVersion, Enumerable.Empty<ResourceAssemblyInfo>()),
+            var depsBuilder = Build(
+            new SingleProjectInfo(pkg.PackageId, pkg.RestoredVersion, Enumerable.Empty<ResourceAssemblyInfo>()),
             null,
             new LockFileFormat().Read(Path.Combine(toolsFolder, "project.assets.json")),
             FrameworkConstants.CommonFrameworks.NetCoreApp10,
@@ -95,11 +102,14 @@ namespace DotNetToolbox.DepsTools
             var destDepsFile = Path.Combine(toolsFolder, $"{toolFileName}.deps.json");
             using (var file = File.Open(tempDepsFile, FileMode.OpenOrCreate, FileAccess.Write))
             {
-                dcw.Write(blah, file);
+                dcw.Write(depsBuilder, file);
             }
             try
             {
-                File.Move(tempDepsFile, destDepsFile);
+                if (!File.Exists(destDepsFile))
+                {
+                    File.Move(tempDepsFile, destDepsFile);
+                }
                 return destDepsFile;
             }
             catch

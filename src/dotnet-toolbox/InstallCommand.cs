@@ -54,7 +54,7 @@ namespace DotNetToolbox
 
             // Get the paths
             //var paths = GetDirAndProjectPaths();
-            EnsureToolboxDirectory();
+            EnsureToolboxDirExists();
 
             // Create temp project to restore the tool
             var restoreTargetFramework = GetTargetFrameworkForRestore();
@@ -76,39 +76,26 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             Out.WriteLine(tempProject);
             File.WriteAllText(tempProjectPath, tempProject);
             Out.WriteLine("Restoring tool packages...");
-            var restore = Process.Start(new ProcessStartInfo
-            {
-                FileName = "dotnet",
-                Arguments = SourceOption.HasValue() ? $"restore {tempProjectPath} -s {SourceOption.Value()}" : $"restore {tempProjectPath}",
-                RedirectStandardOutput = false,
-                RedirectStandardError = false
-            });
-            restore.WaitForExit();
+            ExternalCommand.Create("dotnet", "restore", tempProjectPath).Execute().EnsureSuccessful();
 
-            if (restore.ExitCode != 0)
-                this.Die(restore.StandardError.ReadToEnd());
-            
-            var restoredPackageVersion = GetRestoredPackageVersion(tempProjectDir, pkgMetadata.PackageId);
+            pkgMetadata.RestoredVersion = GetRestoredPackageVersion(tempProjectDir, pkgMetadata.PackageId);
             //Directory.Delete(tempProjectDir, recursive: true);
 
             // We have the package restored
-            var nugetPackagePath = NuGetPathContext.Create(settingsRoot: Directory.GetCurrentDirectory()).UserPackageFolder
-                // The package probing path option can't end with a slash, so we trim it here
-                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-            var targetFramework = GetTargetFramework(nugetPackagePath, pkgMetadata.PackageId, restoredPackageVersion);
-            var fullPath = Path.Combine(nugetPackagePath, pkgMetadata.PackageId.ToLower(), restoredPackageVersion, "lib", targetFramework);
+            var targetFramework = GetTargetFramework(_toolboxConfig.NugetPackageRoot, pkgMetadata.PackageId, pkgMetadata.RestoredVersion);
+            var toolRootPath = Path.Combine(_toolboxConfig.NugetPackageRoot, pkgMetadata.PackageId, pkgMetadata.RestoredVersion, "lib", targetFramework);
             //Out.WriteLine(fullPath);
-            var toolPath = Directory.GetFiles(fullPath, "dotnet-*.dll").FirstOrDefault();
-            var toolFileName = Path.GetFileNameWithoutExtension(toolPath);
-            if (string.IsNullOrEmpty(toolPath))
+            var toolBinaryPath = Directory.GetFiles(toolRootPath, "dotnet-*.dll").FirstOrDefault();
+            var toolFileName = Path.GetFileNameWithoutExtension(toolBinaryPath);
+            if (string.IsNullOrEmpty(toolBinaryPath))
             {
                 //throw new InvalidOperationException("The tool package does not contain a dotnet-*.dll file");
                 this.Die("The tool package does not contain an assembly name the correct way.");
                 
             }
-            var toolsFolder = Path.Combine(nugetPackagePath, ".tools", pkgMetadata.PackageId, restoredPackageVersion, targetFramework);
+            var toolsFolder = Path.Combine(_toolboxConfig.NugetPackageRoot, ".tools", pkgMetadata.PackageId, pkgMetadata.RestoredVersion, targetFramework);
             Out.WriteLine("Generating the runtime files for the tool...");
-            var destDepsFile = new DepsJsonBuilder().GenerateDepsFile(pkgMetadata.PackageId, restoredPackageVersion, toolsFolder, toolFileName);
+            var toolDepsFile = new DepsJsonBuilder().GenerateDepsFile(pkgMetadata, toolsFolder, toolFileName);
             // return 0;
 
             // Find the dotnet-<foo> File
@@ -116,7 +103,7 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             var toolName = toolFileName.Substring(toolFileName.IndexOf('-') + 1);
 
             Out.WriteLine($"Adding {toolName} to the toolbox...");
-            PutToolIntoPath(nugetPackagePath, toolPath, destDepsFile);
+            GenerateScriptForTool(_toolboxConfig.NugetPackageRoot, toolBinaryPath, toolDepsFile);
             Out.WriteLine($"Added {toolName} to the toolbox! Type 'dotnet {toolName}' to run the tool");
             return 0;
         }
@@ -146,21 +133,14 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             var assetsFileJson = JObject.Parse(assetsFileText);
             var packageIdWithVersion = assetsFileJson["libraries"]
                 .Children<JProperty>()
-                .First(lib => lib.Name.StartsWith($"{packageId}/"))
+                .First(lib => lib.Name.StartsWith($"{packageId}/", StringComparison.OrdinalIgnoreCase))
                 .Name;
             var version = packageIdWithVersion.Split('/')[1];
             return version;
         }
 
-        private async Task<string> ResolveLatestFromNuget(string packageId)
-        {
-            var repo = Repository.Factory.GetCoreV3(NuGetConstants.V3FeedUrl);
-            var resource = repo.GetResource<MetadataResource>();
-            var version = await resource.GetLatestVersion(packageId, true, false, NullLogger.Instance, CancellationToken.None);
-            return version.ToString();
-        }
 
-        private void PutToolIntoPath(string nugetPackagePath, string pathToTool, string pathToDepsFile)
+        private void GenerateScriptForTool(string nugetPackagePath, string pathToTool, string pathToDepsFile)
         {
             var script = new StringBuilder();
             var scriptPath = Path.Combine(_toolboxConfig.ToolboxDirectoryPath, Path.GetFileNameWithoutExtension(pathToTool));
@@ -181,26 +161,16 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
                 File.WriteAllText($"{scriptPath}", script.ToString());
                 if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
-                    var chmod = Process.Start(new ProcessStartInfo
-                    {
-                        FileName = "chmod",
-                        Arguments = $"+x {scriptPath}",
-                        RedirectStandardOutput = true
-                    });
-                    chmod.WaitForExit();
-                    if (chmod.ExitCode != 0)
-                    {
-                        Error.WriteLine($"There was an error installing the tool: {chmod.StandardError.ReadToEnd()}");
-                    }
+                    ExternalCommand.Create("chmod", "+x", scriptPath).Execute().EnsureSuccessful();
                 }
             }
             catch (Exception e)
             {
-                Error.WriteLine($"There was an error installing the tool. The error returned was: {e.Message}");
+                this.Die($"There was an error installing the tool. The error returned was: {e.Message}");
             }
 
         }
-        private void EnsureToolboxDirectory()
+        private void EnsureToolboxDirExists()
         {
             //var paths = GetDirAndProjectPaths();
             try
