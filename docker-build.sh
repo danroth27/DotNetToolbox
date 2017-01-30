@@ -1,6 +1,6 @@
 #! /bin/sh
 set -xve
-dotnet restore
+dotnet restore -s https://myget.org/f/danroth28/api/v3/index.json
 dotnet pack -c Release -o /src/packages
 dotnet publish -c Release -o /src/publish/dotnet-toolbox
 apt-get update
