@@ -8,12 +8,12 @@ using System.Linq;
 using Newtonsoft.Json.Linq;
 using DotNetToolbox.DepsTools;
 using DotNetToolbox.Helpers;
+using DotNetToolbox.VersionMetadata;
 
 namespace DotNetToolbox
 {
     public class InstallCommand : CommandLineApplication
     {
-        private const string _directory = ".toolbox";
         private ToolboxConfiguration _toolboxConfig;
 
         public InstallCommand(CommandLineApplication parent)
@@ -55,9 +55,8 @@ namespace DotNetToolbox
 
 
             pkgMetadata.RestoredVersion = GetRestoredPackageVersion(_toolboxConfig.TempProjectPath, pkgMetadata.PackageId);
-            //Directory.Delete(tempProjectDir, recursive: true);
 
-            // We have the package restored
+            // We have the package restored, find out the dotnet-*.dll and create needed paths
             var targetFramework = GetTargetFramework(_toolboxConfig.NugetPackageRoot, pkgMetadata);
 
             var toolRootPath = Path.Combine(_toolboxConfig.NugetPackageRoot, pkgMetadata.PackageId, pkgMetadata.RestoredVersion, "lib", targetFramework);
@@ -71,14 +70,12 @@ namespace DotNetToolbox
             var toolsFolder = Path.Combine(_toolboxConfig.NugetPackageRoot, ".tools", pkgMetadata.PackageId, pkgMetadata.RestoredVersion, targetFramework);
             Out.WriteLine("Generating the runtime files for the tool...");
             var toolDepsFile = new DepsJsonBuilder().GenerateDepsFile(pkgMetadata, toolsFolder, toolFileName);
-            // return 0;
-
-            // Find the dotnet-<foo> File
 
             var toolName = toolFileName.Substring(toolFileName.IndexOf('-') + 1);
 
             Out.WriteLine($"Adding {toolName} to the toolbox...");
             GenerateScriptForTool(_toolboxConfig.NugetPackageRoot, toolBinaryPath, toolDepsFile);
+            WriteVersionToMetadata(pkgMetadata);
             Out.WriteLine($"Added {toolName} to the toolbox! Type 'dotnet {toolName}' to run the tool");
             return 0;
         }
@@ -148,17 +145,22 @@ namespace DotNetToolbox
 
         private void EnsureToolboxDirExists()
         {
-            //var paths = GetDirAndProjectPaths();
+            if (!Directory.Exists(_toolboxConfig.ToolboxDirectoryPath))
+            {
+                this.Die("The toolbox directory does not exist; maybe you need to reinstall?");
+            }
+
+        }
+
+        private void WriteVersionToMetadata(PackageMetadata pkg)
+        {
             try
             {
-                if (!Directory.Exists(_toolboxConfig.ToolboxDirectoryPath))
-                {
-                    Directory.CreateDirectory(_toolboxConfig.ToolboxDirectoryPath);
-                }
+                VersionFile.WriteVersion(pkg, _toolboxConfig.VersionsFile);
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                Error.WriteLine(e.Message);
+                this.Die($"An error occured: {ex.Message}");
             }
 
         }

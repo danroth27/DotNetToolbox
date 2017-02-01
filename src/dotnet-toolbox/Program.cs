@@ -12,6 +12,7 @@ namespace DotNetToolbox
             app.HelpOption("-?|-h|--help");
 
             var installCommand = new InstallCommand(app);
+            var listCommand = new ListCommand(app);
 
             app.OnExecute(() =>
             {
