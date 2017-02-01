@@ -7,10 +7,10 @@ namespace DotNetToolbox.VersionMetadata
 {
     public class VersionFile
     {
-        private static List<PackageMetadata> _contents = new List<PackageMetadata>();
 
         public static void WriteVersion(PackageMetadata pkg, string versionFilePath)
         {
+            var _contents = new List<PackageMetadata>();
             if (File.Exists(versionFilePath))
             {
                 _contents = JsonConvert.DeserializeObject<List<PackageMetadata>>(File.ReadAllText(versionFilePath));

@@ -20,6 +20,8 @@ namespace DotNetToolbox
         }
 
         public PackageMetadata()
-        { }
+        {
+
+        }
     }
 }

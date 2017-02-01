@@ -158,9 +158,9 @@ namespace DotNetToolbox
             {
                 VersionFile.WriteVersion(pkg, _toolboxConfig.VersionsFile);
             }
-            catch
+            catch (Exception ex)
             {
-                throw;
+                this.Die($"An error occured: {ex.Message}");
             }
 
         }
