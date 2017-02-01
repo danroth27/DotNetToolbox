@@ -6,7 +6,7 @@ namespace DotNetToolbox
         public string RequestedVersion { get; set; }
         public string RestoredVersion { get; set; }
 
-        public PackageMetadata(string pid, string rv, string rev)
+        public PackageMetadata(string pid, string rv = "", string rev = "")
         {
             PackageId = pid;
             RequestedVersion = rv;
