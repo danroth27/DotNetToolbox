@@ -18,5 +18,8 @@ namespace DotNetToolbox
             PackageId = pa.Value;
             RequestedVersion = pvo.HasValue() ? pvo.Value() : "*";
         }
+
+        public PackageMetadata()
+        { }
     }
 }

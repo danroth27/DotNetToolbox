@@ -14,7 +14,6 @@ namespace DotNetToolbox
 {
     public class InstallCommand : CommandLineApplication
     {
-        private const string _directory = ".toolbox";
         private ToolboxConfiguration _toolboxConfig;
 
         public InstallCommand(CommandLineApplication parent)
@@ -71,9 +70,6 @@ namespace DotNetToolbox
             var toolsFolder = Path.Combine(_toolboxConfig.NugetPackageRoot, ".tools", pkgMetadata.PackageId, pkgMetadata.RestoredVersion, targetFramework);
             Out.WriteLine("Generating the runtime files for the tool...");
             var toolDepsFile = new DepsJsonBuilder().GenerateDepsFile(pkgMetadata, toolsFolder, toolFileName);
-            // return 0;
-
-            // Find the dotnet-<foo> File
 
             var toolName = toolFileName.Substring(toolFileName.IndexOf('-') + 1);
 
@@ -149,36 +145,18 @@ namespace DotNetToolbox
 
         private void EnsureToolboxDirExists()
         {
-            //var paths = GetDirAndProjectPaths();
-            try
+            if (!Directory.Exists(_toolboxConfig.ToolboxDirectoryPath))
             {
-                if (!Directory.Exists(_toolboxConfig.ToolboxDirectoryPath))
-                {
-                    Directory.CreateDirectory(_toolboxConfig.ToolboxDirectoryPath);
-                }
-            }
-            catch (Exception e)
-            {
-                Error.WriteLine(e.Message);
+                this.Die("The toolbox directory does not exist; maybe you need to reinstall?");
             }
 
         }
 
-        //TODO: move this into its own class in future refactoring...
         private void WriteVersionToMetadata(PackageMetadata pkg)
         {
-            //try
-            //{
-            //    File.AppendAllText(_toolboxConfig.VersionsFile, $"{pkg.PackageId}={pkg.RestoredVersion}\n");
-            //}
-            //catch (Exception e)
-            //{
-            //    this.Die(e.Message);
-            //}
             try
             {
-                var versionFile = new VersionFile(_toolboxConfig.VersionsFile);
-                versionFile.WriteVersion(pkg);
+                VersionFile.WriteVersion(pkg, _toolboxConfig.VersionsFile);
             }
             catch
             {

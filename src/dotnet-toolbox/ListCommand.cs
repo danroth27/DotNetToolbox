@@ -3,6 +3,8 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.CommandLineUtils;
 using DotNetToolbox.Helpers;
 using System.IO;
+using Newtonsoft.Json;
+using System.Collections.Generic;
 
 namespace DotNetToolbox
 {
@@ -27,15 +29,13 @@ namespace DotNetToolbox
                 this.Die("The versions file does not exist.");
             }
             Out.WriteLine("Installed packages on this machine:");
-            var lines = File.ReadAllLines(_toolboxConfig.VersionsFile);
-
-            if (lines.Length > 0)
+            var lines = JsonConvert.DeserializeObject<List<PackageMetadata>>(File.ReadAllText(_toolboxConfig.VersionsFile));
+            if (lines.Count > 0)
             {
 
                 foreach (var line in lines)
                 {
-                    var pair = line.Split(new string[] { "=" }, StringSplitOptions.RemoveEmptyEntries);
-                    Out.WriteLine($"    {pair[0]} ({pair[1]})");
+                    Out.WriteLine($"\t{line.PackageId} ({line.RestoredVersion})");
                 }
             }
             else
