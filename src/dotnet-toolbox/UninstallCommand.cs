@@ -31,11 +31,6 @@ namespace DotNetToolbox
         {
             var pkg = new PackageMetadata(PackageArgument.Value);
 
-            // Here we need to...
-            // 1. Get the binary name based on the package metadata
-            // 2. Get the scrpt name based on the OS
-            // 3. Remove the script named thus
-            // 4. Remove the entry from the version file
             Out.WriteLine($"Attempting to uninstall {pkg.PackageId}");
             try
             {
@@ -54,13 +49,6 @@ namespace DotNetToolbox
 
         private string GetBinaryNameForPackage(string packageId)
         {
-            // Go to the NuGet folder
-            // Find the package
-            // Find the version folder (need to get the info from the metadata file)
-            // Find the binary since it has to be called dotnet-<foo> and there has to be one
-            // return that mofo
-            // Delete from the versions file since it is dead, right?
-            //throw new NotImplementedException();
             var installedVersion = GetInstalledVersionForPackageId(packageId);
             var fullPath = Path.Combine(_toolboxConfig.NugetPackageRoot, packageId, installedVersion);
             var fileName = Directory.GetFiles(fullPath, "dotnet-*.dll", SearchOption.AllDirectories).FirstOrDefault();

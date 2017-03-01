@@ -30,12 +30,11 @@ namespace DotNetToolbox.VersionMetadata
         {
             var _contents = new List<PackageMetadata>();
             if (!File.Exists(versionFilePath))
-                throw new InvalidOperationException("WTF??");
+                throw new InvalidOperationException("The versions file does not exist.");
 
             var stuff = JsonConvert.DeserializeObject<List<PackageMetadata>>(File.ReadAllText(versionFilePath));
             var newStuff = stuff.Where(p => p.PackageId == pkg.PackageId).ToList();
             WriteFile(versionFilePath, newStuff);
-            //File.WriteAllText(versionFilePath, JsonConvert.SerializeObject(_contents));
         }
 
         private static void WriteFile(string path, List<PackageMetadata> contents)
