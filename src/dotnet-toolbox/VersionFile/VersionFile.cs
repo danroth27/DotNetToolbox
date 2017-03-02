@@ -37,6 +37,11 @@ namespace DotNetToolbox.VersionMetadata
             WriteFile(versionFilePath, newStuff);
         }
 
+        public static PackageMetadata Get(string packageId)
+        {
+            return null;
+        }
+
         private static void WriteFile(string path, List<PackageMetadata> contents)
         {
             File.WriteAllText(path, JsonConvert.SerializeObject(contents));

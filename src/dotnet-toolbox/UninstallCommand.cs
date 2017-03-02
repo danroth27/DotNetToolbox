@@ -29,15 +29,15 @@ namespace DotNetToolbox
 
         public async Task<int> Run()
         {
-            var pkg = new PackageMetadata(PackageArgument.Value);
+            var packageId = PackageArgument.Value;
 
-            Out.WriteLine($"Attempting to uninstall {pkg.PackageId}");
+            Out.WriteLine($"Attempting to uninstall {packageId}");
             try
             {
-                var binaryName = String.Format("{0}{1}", GetBinaryNameForPackage(pkg.PackageId), GetExtension());
+                var binaryName = String.Format("{0}{1}", GetBinaryNameForPackage(packageId), GetExtension());
                 RemoveScriptBinding(binaryName);
-                RemoveFromVersionsFile(pkg.PackageId);
-                Out.WriteLine($"{pkg.PackageId} uninstalled successfully!");
+                RemoveFromVersionsFile(packageId);
+                Out.WriteLine($"{packageId} uninstalled successfully!");
                 return 0;
             }
             catch (Exception ex)
