@@ -67,6 +67,7 @@ namespace DotNetToolbox
                 this.Die("The tool package does not contain an assembly name the correct way.");
 
             }
+            pkgMetadata.BinaryName = toolFileName;
             var toolsFolder = Path.Combine(_toolboxConfig.NugetPackageRoot, ".tools", pkgMetadata.PackageId, pkgMetadata.RestoredVersion, targetFramework);
             Out.WriteLine("Generating the runtime files for the tool...");
             var toolDepsFile = new DepsJsonBuilder().GenerateDepsFile(pkgMetadata, toolsFolder, toolFileName);

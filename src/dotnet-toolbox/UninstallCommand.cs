@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using DotNetToolbox.Helpers;
 using Microsoft.Extensions.CommandLineUtils;
 using Newtonsoft.Json;
+using DotNetToolbox.VersionMetadata;
 
 namespace DotNetToolbox
 {
@@ -34,9 +35,15 @@ namespace DotNetToolbox
             Out.WriteLine($"Attempting to uninstall {packageId}");
             try
             {
-                var binaryName = String.Format("{0}{1}", GetBinaryNameForPackage(packageId), GetExtension());
-                RemoveScriptBinding(binaryName);
-                RemoveFromVersionsFile(packageId);
+                //var binaryName = String.Format("{0}{1}", GetBinaryNameForPackage(packageId), GetExtension());
+                var existingPackage = VersionFile.Get((PackageMetadata p) => p.PackageId == packageId || p.BinaryName == packageId, _toolboxConfig.VersionsFile);
+                if (existingPackage == null)
+                {
+                    this.Die($"Specified item ({packageId}) does not exist.");
+                }
+                RemoveScriptBinding(existingPackage.BinaryName);
+                //RemoveFromVersionsFile(packageId);
+                VersionFile.RemoveVersion(existingPackage, _toolboxConfig.VersionsFile);
                 Out.WriteLine($"{packageId} uninstalled successfully!");
                 return 0;
             }
@@ -47,15 +54,15 @@ namespace DotNetToolbox
             }
         }
 
-        private string GetBinaryNameForPackage(string packageId)
-        {
-            var installedVersion = GetInstalledVersionForPackageId(packageId);
-            var fullPath = Path.Combine(_toolboxConfig.NugetPackageRoot, packageId, installedVersion);
-            var fileName = Directory.GetFiles(fullPath, "dotnet-*.dll", SearchOption.AllDirectories).FirstOrDefault();
-            if (String.IsNullOrEmpty(fileName))
-                this.Die($"There is no dontet-*.dll binary associated with {packageId}.");
-            return Path.GetFileNameWithoutExtension(fileName);
-        }
+        //private string GetBinaryNameForPackage(string packageId)
+        //{
+        //    var installedVersion = GetInstalledVersionForPackageId(packageId);
+        //    var fullPath = Path.Combine(_toolboxConfig.NugetPackageRoot, packageId, installedVersion);
+        //    var fileName = Directory.GetFiles(fullPath, "dotnet-*.dll", SearchOption.AllDirectories).FirstOrDefault();
+        //    if (String.IsNullOrEmpty(fileName))
+        //        this.Die($"There is no dontet-*.dll binary associated with {packageId}.");
+        //    return Path.GetFileNameWithoutExtension(fileName);
+        //}
 
         private string GetExtension()
         {
@@ -64,23 +71,23 @@ namespace DotNetToolbox
 
         void RemoveScriptBinding(string binaryName)
         {
-            File.Delete(Path.Combine(_toolboxConfig.ToolboxDirectoryPath, binaryName));
+            File.Delete(Path.Combine(_toolboxConfig.ToolboxDirectoryPath, $"{binaryName}{GetExtension()}"));
         }
 
-        void RemoveFromVersionsFile(string packageId)
-        {
-            var remainingTools = JsonConvert.DeserializeObject<List<PackageMetadata>>(File.ReadAllText(_toolboxConfig.VersionsFile))
-                                            .Where(p => !String.Equals(p.PackageId, packageId, StringComparison.OrdinalIgnoreCase)).ToList();
-            File.WriteAllText(_toolboxConfig.VersionsFile, JsonConvert.SerializeObject(remainingTools));
-        }
+        //void RemoveFromVersionsFile(string packageId)
+        //{
+        //    var remainingTools = JsonConvert.DeserializeObject<List<PackageMetadata>>(File.ReadAllText(_toolboxConfig.VersionsFile))
+        //                                    .Where(p => !String.Equals(p.PackageId, packageId, StringComparison.OrdinalIgnoreCase)).ToList();
+        //    File.WriteAllText(_toolboxConfig.VersionsFile, JsonConvert.SerializeObject(remainingTools));
+        //}
 
-        private string GetInstalledVersionForPackageId(string packageId)
-        {
-            var installedPackage = JsonConvert.DeserializeObject<List<PackageMetadata>>(File.ReadAllText(_toolboxConfig.VersionsFile))
-                                              .FirstOrDefault(p => p.PackageId == packageId);
-            if (installedPackage == null)
-                this.Die($"There is no entry for {packageId} in the metadata file.");
-            return installedPackage.RestoredVersion;
-        }
+        //private string GetInstalledVersionForPackageId(string packageId)
+        //{
+        //    var installedPackage = JsonConvert.DeserializeObject<List<PackageMetadata>>(File.ReadAllText(_toolboxConfig.VersionsFile))
+        //                                      .FirstOrDefault(p => p.PackageId == packageId);
+        //    if (installedPackage == null)
+        //        this.Die($"There is no entry for {packageId} in the metadata file.");
+        //    return installedPackage.RestoredVersion;
+        //}
     }
 }
