@@ -147,9 +147,8 @@ namespace DotNetToolbox
         {
             if (!Directory.Exists(_toolboxConfig.ToolboxDirectoryPath))
             {
-                this.Die("The toolbox directory does not exist; maybe you need to reinstall?");
+                Directory.CreateDirectory(_toolboxConfig.ToolboxDirectoryPath);
             }
-
         }
 
         private void WriteVersionToMetadata(PackageMetadata pkg)
