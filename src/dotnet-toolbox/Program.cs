@@ -13,6 +13,7 @@ namespace DotNetToolbox
 
             var installCommand = new InstallCommand(app);
             var listCommand = new ListCommand(app);
+            var uninstallCommand = new UninstallCommand(app);
 
             app.OnExecute(() =>
             {
